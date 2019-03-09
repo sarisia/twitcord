@@ -1,0 +1,12 @@
+{
+    "twitter": {
+        "consumerKey": "",
+        "consumerSecret": "",
+        "token": "",
+        "tokenSecret": ""
+    },
+    "discord": {
+        "token": ""
+    },
+    "command_prefix": "."
+}
