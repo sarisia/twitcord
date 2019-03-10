@@ -10,6 +10,7 @@ log = getLogger(__name__)
 class Subscriber():
     endpoint = ''
     table_name = ''
+    params = {}
 
     def __init__(self, twitter, channel_id):
         self.twitter = twitter
@@ -17,6 +18,7 @@ class Subscriber():
 
         self.endpoint = self.endpoint
         self.table = TableManager(self.table_name)
+        self.params = self.params
         self.latest_id = 0
 
     
@@ -54,11 +56,22 @@ class Subscriber():
         return ret or []
 
     async def _fetch(self):
-        return await self.twitter('GET', self.endpoint, params={'tweet_mode': 'extended'})
+        return await self.twitter('GET', self.endpoint, params=self.params.update({'tweet_mode': 'extended'}))
 
 class HomeTimelineSubscriber(Subscriber):
     endpoint = 'statuses/home_timeline'
     table_name = 'home_timeline'
+
+class UserTimelineSubscriber(Subscriber):
+    endpoint = 'statuses/user_timeline'
+
+    def __init__(self, twitter, channel, user_screen_name):
+        self.table_name = user_screen_name
+        self.user = user_screen_name
+
+        super().__init__(twitter, channel)
+
+        self.params['screen_name'] = self.user
 
 class ListSubscriber(Subscriber):
     endpoint = 'lists/statuses'
@@ -69,13 +82,18 @@ class ListSubscriber(Subscriber):
         
         super().__init__(twitter, channel)
 
-    async def _fetch(self):
-        return await self.twitter('GET', self.endpoint, params={'tweet_mode': 'extended', 'list_id': self.list_id})
+        self.params['list_id'] = self.list_id
 
 class FavoriteSubscriber(Subscriber):
     endpoint = 'favorites/list'
-    table_name = 'favorites'
+    params = {
+        'count': 50
+    }
 
-    async def _fetch(self):
-        return await self.twitter('GET', self.endpoint, params={'tweet_mode': 'extended', 'count': 50})
+    def __init__(self, twitter, channel, user_screen_name):
+        self.table_name = f'{user_screen_name}_favorites'
+        self.user = user_screen_name
 
+        super().__init__(twitter, channel)
+
+        self.params['screen_name'] = self.user

@@ -10,7 +10,7 @@ from aiosqlite import connect as con
 
 from .config import Config
 from .subscriber import (FavoriteSubscriber, HomeTimelineSubscriber,
-                         ListSubscriber)
+                         ListSubscriber, UserTimelineSubscriber)
 
 log = getLogger(__name__)
 
