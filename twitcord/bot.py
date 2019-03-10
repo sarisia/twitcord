@@ -87,6 +87,7 @@ class Twitcord(discord.Client):
         asyncio.ensure_future(self.refresh(), loop=self.loop)
 
         for subscriber in self.subs:
+            log.debug(datetime.now())
             log.debug(f'refreshing {subscriber.table_name}')
             log.debug(f'latest_id: {subscriber.latest_id}')
             tweets = await subscriber.refresh()
@@ -139,8 +140,19 @@ class Twitcord(discord.Client):
 
     def _tweet_to_embed(self, tweet: dict) -> discord.Embed:
         embed = discord.Embed()
-        embed.set_author(name=tweet['user_name'], icon_url=tweet['user_icon'])
+        embed.set_author(name=tweet['user_name'], icon_url=tweet['user_icon'], url=self._twitter_url(user=tweet['user_screen_name'], status=tweet['id']))
         embed.description = tweet['tweet']
         embed.timestamp = datetime.strptime(tweet['timestamp'], "%a %b %d %H:%M:%S %z %Y") # ctime
 
         return embed
+
+    @staticmethod
+    def _twitter_url(user=None, status=None):
+        tail = ''
+        if user:
+            if status:
+                tail = f'{user}/status/{str(status)}'
+            else:
+                tail = user
+        
+        return 'https://twitter.com/' + tail

@@ -28,6 +28,7 @@ class Subscriber():
             ret.append({
                 'id': item['id'],
                 'user_name': item['user']['name'],
+                'user_screen_name':item['user']['screen_name'],
                 'user_icon': item['user']['profile_image_url_https'],
                 'tweet': item['full_text'],
                 'timestamp': item['created_at']
@@ -45,12 +46,12 @@ class Subscriber():
             ret = await self.table.diffs(self.latest_id)
         elif to_db:
             to_db.sort(key=lambda item: item['id'])
-            self.latest_id = to_db[-1]['id']
-            log.debug(f'set latest_id to {self.latest_id}')
-
+            ret = to_db[-5:]
+        
         if ret:
             self.latest_id = ret[-1]['id']
-        return ret or ()
+
+        return ret or []
 
     async def _fetch(self):
         return await self.twitter('GET', self.endpoint, params={'tweet_mode': 'extended'})

@@ -23,18 +23,18 @@ class TableManager():
         # why placeholder does not work?
         db.execute(f"""CREATE TABLE IF NOT EXISTS {self.table_name} (id int primary key,
                                                                         user_name text,
+                                                                        user_screen_name text,
                                                                         user_icon text,
                                                                         tweet text,
                                                                         timestamp text)""")
         db.commit()
         db.close()
 
-        log.debug(f'Created table {self.table_name}')
-
     async def update(self, content: dict):
         async with connect(self.db) as db:
             await db.executemany(f"""INSERT OR IGNORE INTO {self.table_name} values (:id,
                                                                                     :user_name,
+                                                                                    :user_screen_name,
                                                                                     :user_icon,
                                                                                     :tweet,
                                                                                     :timestamp)""", content)
