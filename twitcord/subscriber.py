@@ -29,7 +29,7 @@ class Subscriber():
                 'id': item['id'],
                 'user_name': item['user']['name'],
                 'user_icon': item['user']['profile_image_url_https'],
-                'tweet': item['text'],
+                'tweet': item['full_text'],
                 'timestamp': item['created_at']
             })
 
@@ -53,7 +53,7 @@ class Subscriber():
         return ret or ()
 
     async def _fetch(self):
-        return await self.twitter('GET', self.endpoint)
+        return await self.twitter('GET', self.endpoint, params={'tweet_mode': 'extended'})
 
 class HomeTimelineSubscriber(Subscriber):
     endpoint = 'statuses/home_timeline'
@@ -69,12 +69,12 @@ class ListSubscriber(Subscriber):
         super().__init__(twitter, channel)
 
     async def _fetch(self):
-        return await self.twitter('GET', self.endpoint, params={'list_id': self.list_id})
+        return await self.twitter('GET', self.endpoint, params={'tweet_mode': 'extended', 'list_id': self.list_id})
 
 class FavoriteSubscriber(Subscriber):
     endpoint = 'favorites/list'
     table_name = 'favorites'
 
     async def _fetch(self):
-        return await self.twitter('GET', self.endpoint, params={'count': 50})
+        return await self.twitter('GET', self.endpoint, params={'tweet_mode': 'extended', 'count': 50})
 
