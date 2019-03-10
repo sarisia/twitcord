@@ -108,22 +108,42 @@ class Twitcord(discord.Client):
 
     async def cmd_sub(self, channel, text):
         splitted = text.split('/')
-        if len(splitted) == 2:
-            params = {
-                'owner_screen_name': splitted[0].strip('@'),
-                'slug': splitted[1]
-            }
-
-            ret = await self._safe_twitter('GET', 'lists/show', params=params)
-            if ret:
-                self.subs.append(ListSubscriber(self._safe_twitter, channel.id, ret['id'], **params))
+        if len(splitted) == 1:
+            if splitted[0] == 'home':
+                self.subs.append(HomeTimelineSubscriber(self._safe_twitter, channel.id))
+                log.info('Subscribed home timeline')
             else:
-                log.error(f'List not found for {text}')
+                ret = await self._safe_twitter('GET', 'users/show', params={'screen_name': splitted[0]})
+                if ret:
+                    self.subs.append(UserTimelineSubscriber(self._safe_twitter, channel.id, splitted[0]))
+                    log.info(f'Subscribed user {splitted[0]}')
+                else:
+                    log.info(f'User not found: {splitted[0]}')
+        elif len(splitted) == 2:
+            if splitted[1] in ['favs', 'favorites']:
+                ret = await self._safe_twitter('GET', 'users/show', params={'screen_name': splitted[0]})
+                if ret:
+                    self.subs.append(FavoriteSubscriber(self._safe_twitter, channel.id, splitted[0]))
+                    log.info(f'Subscribed favorite {splitted[0]}')
+                else:
+                    log.info(f'User not found: {splitted[0]}')
+            else:                
+                params = {
+                    'owner_screen_name': splitted[0].strip('@'),
+                    'slug': splitted[1]
+                }
+
+                ret = await self._safe_twitter('GET', 'lists/show', params=params)
+                if ret:
+                    self.subs.append(ListSubscriber(self._safe_twitter, channel.id, ret['id'], **params))
+                else:
+                    log.error(f'List not found for {text}')
         else:
             log.error(f'Not subscribable: {text}')
 
     async def _safe_twitter(self, method, endpoint, **kwargs):
         ret = None
+        log.debug(f'Calling Twitter: {method}, {endpoint}, {kwargs}')
         try:
             ret = await self.twitter.request(method, endpoint + '.json', **kwargs)
         except Exception as e:
