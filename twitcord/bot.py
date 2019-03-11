@@ -5,12 +5,12 @@ from datetime import datetime
 from logging import getLogger
 
 import discord
-from aioauth_client import TwitterClient
 from aiosqlite import connect as con
 
 from .config import Config
 from .subscriber import (FavoriteSubscriber, HomeTimelineSubscriber,
                          ListSubscriber, UserTimelineSubscriber)
+from .twitter import TwitterWrapper
 
 log = getLogger(__name__)
 
@@ -18,7 +18,7 @@ log = getLogger(__name__)
 class Twitcord(discord.Client):
     def __init__(self):
         self.config = Config()
-        self.twitter = TwitterClient(
+        self.twitter = TwitterWrapper(
             consumer_key=self.config.twitter['consumerKey'],
             consumer_secret=self.config.twitter['consumerSecret'],
             oauth_token=self.config.twitter['token'],
@@ -75,13 +75,6 @@ class Twitcord(discord.Client):
 
         await handler(**kwargs)
 
-    async def cmd_tweet(self, text):
-        content = {
-            'status': urllib.parse.quote(text)
-        }
-
-        await self._safe_twitter('POST', 'statuses/update', params=content)
-
     async def refresh(self):
         await asyncio.sleep(10)
         asyncio.ensure_future(self.refresh(), loop=self.loop)
@@ -97,8 +90,12 @@ class Twitcord(discord.Client):
             else:
                 log.error(f'Channel not found for id {subscriber.channel_id}')
 
+    async def cmd_tweet(self, text):
+        content = { 'status': urllib.parse.quote(text) }
+        await self.twitter.post('statuses/update', params=content)
+
     async def cmd_lists(self, channel):
-        ret = await self._safe_twitter('GET', 'lists/list')
+        ret = await self.twitter.get('lists/list')
         print(ret)
         embed = discord.Embed(title='Lists')
         for item in ret:
@@ -110,20 +107,20 @@ class Twitcord(discord.Client):
         splitted = text.split('/')
         if len(splitted) == 1:
             if splitted[0] == 'home':
-                self.subs.append(HomeTimelineSubscriber(self._safe_twitter, channel.id))
+                self.subs.append(HomeTimelineSubscriber(self.twitter, channel.id))
                 log.info('Subscribed home timeline')
             else:
-                ret = await self._safe_twitter('GET', 'users/show', params={'screen_name': splitted[0]})
+                ret = await self.twitter.get('users/show', params={'screen_name': splitted[0]})
                 if ret:
-                    self.subs.append(UserTimelineSubscriber(self._safe_twitter, channel.id, splitted[0]))
+                    self.subs.append(UserTimelineSubscriber(self.twitter, channel.id, splitted[0]))
                     log.info(f'Subscribed user {splitted[0]}')
                 else:
                     log.info(f'User not found: {splitted[0]}')
         elif len(splitted) == 2:
             if splitted[1] in ['favs', 'favorites']:
-                ret = await self._safe_twitter('GET', 'users/show', params={'screen_name': splitted[0]})
+                ret = await self.twitter.get('users/show', params={'screen_name': splitted[0]})
                 if ret:
-                    self.subs.append(FavoriteSubscriber(self._safe_twitter, channel.id, splitted[0]))
+                    self.subs.append(FavoriteSubscriber(self.twitter, channel.id, splitted[0]))
                     log.info(f'Subscribed favorite {splitted[0]}')
                 else:
                     log.info(f'User not found: {splitted[0]}')
@@ -133,26 +130,13 @@ class Twitcord(discord.Client):
                     'slug': splitted[1]
                 }
 
-                ret = await self._safe_twitter('GET', 'lists/show', params=params)
+                ret = await self.twitter.get('lists/show', params=params)
                 if ret:
-                    self.subs.append(ListSubscriber(self._safe_twitter, channel.id, ret['id'], **params))
+                    self.subs.append(ListSubscriber(self.twitter, channel.id, ret['id'], **params))
                 else:
                     log.error(f'List not found for {text}')
         else:
             log.error(f'Not subscribable: {text}')
-
-    async def _safe_twitter(self, method, endpoint, **kwargs):
-        ret = None
-        log.debug(f'Calling Twitter: {method}, {endpoint}, {kwargs}')
-        try:
-            ret = await self.twitter.request(method, endpoint + '.json', **kwargs)
-        except Exception as e:
-            # TODO: implement kindful errors
-            log.error('Failed to communicate with Twitter API:')
-            log.error(f'Request: {method}, {endpoint}')
-            log.error(f'Status: {e}')
-
-        return ret
 
     async def _send_tweets(self, channel: discord.ChannelType, tweets: list):
         for embed in [self._tweet_to_embed(tweet) for tweet in tweets]:

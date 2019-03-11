@@ -57,7 +57,7 @@ class Subscriber():
 
     async def _fetch(self):
         self.params.update({'tweet_mode': 'extended'})
-        return await self.twitter('GET', self.endpoint, params=self.params)
+        return await self.twitter.get(self.endpoint, params=self.params)
 
 class HomeTimelineSubscriber(Subscriber):
     endpoint = 'statuses/home_timeline'
