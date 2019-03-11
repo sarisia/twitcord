@@ -10,6 +10,7 @@ from .config import Config
 from .subscriber import (FavoriteSubscriber, HomeTimelineSubscriber,
                          ListSubscriber, UserTimelineSubscriber)
 from .twitter import TwitterWrapper
+from .utils import tweet_to_embed
 
 log = getLogger(__name__)
 
@@ -138,24 +139,5 @@ class Twitcord(discord.Client):
             log.error(f'Not subscribable: {text}')
 
     async def _send_tweets(self, channel: discord.ChannelType, tweets: list):
-        for embed in [self._tweet_to_embed(tweet) for tweet in tweets]:
-            await channel.send(embed=embed)
-
-    def _tweet_to_embed(self, tweet: dict) -> discord.Embed:
-        embed = discord.Embed()
-        embed.set_author(name=tweet['user_name'], icon_url=tweet['user_icon'], url=self._twitter_url(user=tweet['user_screen_name'], status=tweet['id']))
-        embed.description = tweet['tweet']
-        embed.timestamp = datetime.strptime(tweet['timestamp'], "%a %b %d %H:%M:%S %z %Y") # ctime
-
-        return embed
-
-    @staticmethod
-    def _twitter_url(user=None, status=None):
-        tail = ''
-        if user:
-            if status:
-                tail = f'{user}/status/{str(status)}'
-            else:
-                tail = user
-        
-        return 'https://twitter.com/' + tail
+        for tweet in tweets:
+            await channel.send(embed=tweet_to_embed(tweet))
