@@ -5,7 +5,6 @@ from datetime import datetime
 from logging import getLogger
 
 import discord
-from aiosqlite import connect as con
 
 from .config import Config
 from .subscriber import (FavoriteSubscriber, HomeTimelineSubscriber,
