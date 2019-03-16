@@ -1,27 +1,53 @@
 from logging import getLogger
+from enum import IntEnum, auto
 
 from .database import TableManager
 
 log = getLogger(__name__)
 
-# TODO: serializer / deserializer
+# TODO: lock
 # TODO: don't use separeted table (use single tweet store)
 
+class SubsType(IntEnum):
+    Subscriber = auto()
+    HomeTimeline = auto()
+    UserTimeline = auto()
+    List = auto()
+    Favorite = auto()
+
 class Subscriber():
+    subtype = SubsType.Subscriber
     endpoint = ''
     table_name = ''
     params = {}
 
-    def __init__(self, twitter, channel_id):
+    def __init__(self, twitter, channel_id, *, data=None):
         self.twitter = twitter
         self.channel_id = channel_id
-
-        self.endpoint = self.endpoint
-        self.table = TableManager(self.table_name)
-        self.params = self.params
         self.latest_id = 0
 
-    
+        if data:
+            self.table_name = data['table_name']
+            self.latest_id = data['latest_id']
+            self.params = data['params']
+
+        self.table = TableManager(self.table_name)
+
+    def serialize(self):
+        return {
+            'subtype': int(self.subtype),
+            'data': {
+                'table_name': self.table_name,
+                'channel_id': self.channel_id,
+                'latest_id': self.latest_id,
+                'params': self.params
+            }
+        }
+
+    @classmethod
+    def deserialize(cls, twitter, data):
+        return cls(twitter, data['channel_id'], data=data)
+
     @staticmethod
     def format_tweet(content):
         ret = []
@@ -60,41 +86,42 @@ class Subscriber():
         return await self.twitter.get(self.endpoint, params=self.params)
 
 class HomeTimelineSubscriber(Subscriber):
+    subtype = SubsType.HomeTimeline
     endpoint = 'statuses/home_timeline'
     table_name = 'home_timeline'
 
 class UserTimelineSubscriber(Subscriber):
+    subtype = SubsType.UserTimeline
     endpoint = 'statuses/user_timeline'
 
-    def __init__(self, twitter, channel, user_screen_name):
-        self.table_name = user_screen_name
-        self.user = user_screen_name
-
-        super().__init__(twitter, channel)
-
-        self.params['screen_name'] = self.user
+    def __init__(self, twitter, channel_id, user_screen_name=None, *, data=None):
+        if not data:
+            self.table_name = user_screen_name
+            self.params['screen_name'] = user_screen_name
+        
+        super().__init__(twitter, channel_id, data=data)
 
 class ListSubscriber(Subscriber):
+    subtype = SubsType.List
     endpoint = 'lists/statuses'
     
-    def __init__(self, twitter, channel, list_id, owner_screen_name, slug):
-        self.table_name = f'{owner_screen_name}_{slug}'
-        self.list_id = list_id
-        
-        super().__init__(twitter, channel)
-
-        self.params['list_id'] = self.list_id
+    def __init__(self, twitter, channel_id, list_id=None, owner_screen_name=None, slug=None, *, data=None):
+        if not data:
+            self.table_name = f'{owner_screen_name}_{slug}'
+            self.params['list_id'] = list_id
+            
+        super().__init__(twitter, channel_id, data=data)
 
 class FavoriteSubscriber(Subscriber):
+    subtype = SubsType.Favorite
     endpoint = 'favorites/list'
     params = {
         'count': 50
     }
 
-    def __init__(self, twitter, channel, user_screen_name):
-        self.table_name = f'{user_screen_name}_favorites'
-        self.user = user_screen_name
+    def __init__(self, twitter, channel_id, user_screen_name=None, *, data=None):        
+        if not data:
+            self.table_name = f'{user_screen_name}_favorites'
+            self.params['screen_name'] = user_screen_name
 
-        super().__init__(twitter, channel)
-
-        self.params['screen_name'] = self.user
+        super().__init__(twitter, channel_id, data=data)
