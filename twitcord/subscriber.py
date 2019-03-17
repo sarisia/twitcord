@@ -55,6 +55,7 @@ class Subscriber():
         for item in content:
             ret.append({
                 'id': item['id'],
+                'user_id': item['user']['id'],
                 'user_name': item['user']['name'],
                 'user_screen_name':item['user']['screen_name'],
                 'user_icon': item['user']['profile_image_url_https'],
@@ -94,10 +95,10 @@ class UserTimelineSubscriber(Subscriber):
     subtype = SubsType.UserTimeline
     endpoint = 'statuses/user_timeline'
 
-    def __init__(self, twitter, channel_id, user_screen_name=None, *, data=None):
+    def __init__(self, twitter, channel_id, user_id=None, *, data=None):
         if not data:
-            self.table_name = user_screen_name
-            self.params['screen_name'] = user_screen_name
+            self.table_name = user_id
+            self.params['user_id'] = user_id
         
         super().__init__(twitter, channel_id, data=data)
 
@@ -119,9 +120,9 @@ class FavoriteSubscriber(Subscriber):
         'count': 50
     }
 
-    def __init__(self, twitter, channel_id, user_screen_name=None, *, data=None):        
+    def __init__(self, twitter, channel_id, user_id=None, *, data=None):        
         if not data:
-            self.table_name = f'{user_screen_name}_favorites'
-            self.params['screen_name'] = user_screen_name
+            self.table_name = f'{user_id}_favorites'
+            self.params['user_id'] = user_id
 
         super().__init__(twitter, channel_id, data=data)

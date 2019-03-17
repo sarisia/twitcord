@@ -65,7 +65,7 @@ class Twitcord(discord.Client):
             return
 
         # construct args
-        # use copy() to avoid `mappingproxy has no attribute 'pop'`
+        # use copy() to convert mappingproxy to list
         handler_params = inspect.signature(handler).parameters.copy()
         kwargs = {}
         if handler_params.pop('text', None):
@@ -112,16 +112,16 @@ class Twitcord(discord.Client):
             else:
                 ret = await self.twitter.get('users/show', params={'screen_name': splitted[0]})
                 if ret:
-                    self.subs.append(UserTimelineSubscriber(self.twitter, channel.id, splitted[0]))
-                    log.info(f'Subscribed user {splitted[0]}')
+                    self.subs.append(UserTimelineSubscriber(self.twitter, channel.id, ret['id']))
+                    log.info(f'Subscribed user {splitted[0]} ({ret["id"]})')
                 else:
                     log.info(f'User not found: {splitted[0]}')
         elif len(splitted) == 2:
             if splitted[1] in ['favs', 'favorites']:
                 ret = await self.twitter.get('users/show', params={'screen_name': splitted[0]})
                 if ret:
-                    self.subs.append(FavoriteSubscriber(self.twitter, channel.id, splitted[0]))
-                    log.info(f'Subscribed favorite {splitted[0]}')
+                    self.subs.append(FavoriteSubscriber(self.twitter, channel.id, ret['id']))
+                    log.info(f'Subscribed favorite {splitted[0]} ({ret["id"]})')
                 else:
                     log.info(f'User not found: {splitted[0]}')
             else:                
