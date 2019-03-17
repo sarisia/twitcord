@@ -132,7 +132,7 @@ class Twitcord(discord.Client):
 
                 ret = await self.twitter.get('lists/show', params=params)
                 if ret:
-                    self.subs.append(ListSubscriber(self.twitter, channel.id, ret['id'], **params))
+                    self.subs.append(ListSubscriber(self.twitter, channel.id, ret['id']))
                 else:
                     log.error(f'List not found for {text}')
         else:

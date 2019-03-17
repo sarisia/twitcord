@@ -97,7 +97,7 @@ class UserTimelineSubscriber(Subscriber):
 
     def __init__(self, twitter, channel_id, user_id=None, *, data=None):
         if not data:
-            self.table_name = str(user_id)
+            self.table_name = f'user_{user_id}'
             self.params['user_id'] = user_id
         
         super().__init__(twitter, channel_id, data=data)
@@ -106,9 +106,9 @@ class ListSubscriber(Subscriber):
     subtype = SubsType.List
     endpoint = 'lists/statuses'
     
-    def __init__(self, twitter, channel_id, list_id=None, owner_screen_name=None, slug=None, *, data=None):
+    def __init__(self, twitter, channel_id, list_id=None, *, data=None):
         if not data:
-            self.table_name = f'{owner_screen_name}_{slug}'
+            self.table_name = f'list_{list_id}'
             self.params['list_id'] = list_id
             
         super().__init__(twitter, channel_id, data=data)
@@ -122,7 +122,7 @@ class FavoriteSubscriber(Subscriber):
 
     def __init__(self, twitter, channel_id, user_id=None, *, data=None):        
         if not data:
-            self.table_name = f'{user_id}_favorites'
+            self.table_name = f'favorites_{user_id}'
             self.params['user_id'] = user_id
 
         super().__init__(twitter, channel_id, data=data)
