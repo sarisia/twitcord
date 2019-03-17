@@ -97,7 +97,7 @@ class UserTimelineSubscriber(Subscriber):
 
     def __init__(self, twitter, channel_id, user_id=None, *, data=None):
         if not data:
-            self.table_name = user_id
+            self.table_name = str(user_id)
             self.params['user_id'] = user_id
         
         super().__init__(twitter, channel_id, data=data)
