@@ -22,6 +22,7 @@ class TableManager():
         db = sqlite3.connect(self.db)
         # why placeholder does not work?
         db.execute(f"""CREATE TABLE IF NOT EXISTS {self.table_name} (id int primary key,
+                                                                        user_id int,
                                                                         user_name text,
                                                                         user_screen_name text,
                                                                         user_icon text,
@@ -33,6 +34,7 @@ class TableManager():
     async def update(self, content: dict):
         async with connect(self.db) as db:
             await db.executemany(f"""INSERT OR IGNORE INTO {self.table_name} values (:id,
+                                                                                    :user_id,
                                                                                     :user_name,
                                                                                     :user_screen_name,
                                                                                     :user_icon,
