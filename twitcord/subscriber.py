@@ -1,5 +1,5 @@
-from logging import getLogger
 from enum import IntEnum, auto
+from logging import getLogger
 
 from .database import TableManager
 
@@ -25,6 +25,7 @@ class Subscriber():
         self.twitter = twitter
         self.channel_id = channel_id
         self.latest_id = 0
+        self.params = self.params.copy()
 
         if data:
             self.table_name = data['table_name']
@@ -32,6 +33,7 @@ class Subscriber():
             self.params = data['params']
 
         self.table = TableManager(self.table_name)
+        self.params['tweet_mode'] = 'extended'
 
     def serialize(self):
         return {
@@ -48,8 +50,7 @@ class Subscriber():
     def deserialize(cls, twitter, data):
         return cls(twitter, data['channel_id'], data=data)
 
-    @staticmethod
-    def format_tweet(content):
+    def format_tweet(self, content):
         ret = []
 
         for item in content:
@@ -73,17 +74,18 @@ class Subscriber():
 
         if self.latest_id:
             ret = await self.table.diffs(self.latest_id)
+            log.debug(f'{self.table_name}: diffs length {len(ret)}')
         elif to_db:
             to_db.sort(key=lambda item: item['id'])
             ret = to_db[-5:]
         
         if ret:
+            log.debug(f'{self.table_name}: latest id is set to {ret[-1]["id"]}')
             self.latest_id = ret[-1]['id']
 
         return ret or []
 
     async def _fetch(self):
-        self.params.update({'tweet_mode': 'extended'})
         return await self.twitter.get(self.endpoint, params=self.params)
 
 class HomeTimelineSubscriber(Subscriber):
@@ -98,7 +100,7 @@ class UserTimelineSubscriber(Subscriber):
     def __init__(self, twitter, channel_id, user_id=None, *, data=None):
         if not data:
             self.table_name = f'user_{user_id}'
-            self.params['user_id'] = user_id
+            self.params = { 'user_id': user_id }
         
         super().__init__(twitter, channel_id, data=data)
 
@@ -109,20 +111,20 @@ class ListSubscriber(Subscriber):
     def __init__(self, twitter, channel_id, list_id=None, *, data=None):
         if not data:
             self.table_name = f'list_{list_id}'
-            self.params['list_id'] = list_id
+            self.params = { 'list_id': list_id }
             
         super().__init__(twitter, channel_id, data=data)
 
 class FavoriteSubscriber(Subscriber):
     subtype = SubsType.Favorite
     endpoint = 'favorites/list'
-    params = {
-        'count': 50
-    }
 
     def __init__(self, twitter, channel_id, user_id=None, *, data=None):        
         if not data:
             self.table_name = f'favorites_{user_id}'
-            self.params['user_id'] = user_id
-
+            self.params = {
+                'count': 50,
+                'user_id': user_id
+            }
+        
         super().__init__(twitter, channel_id, data=data)

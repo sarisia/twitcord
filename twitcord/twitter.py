@@ -10,7 +10,7 @@ class TwitterWrapper(TwitterClient):
     async def _safe_request(self, method, endpoint, **kwargs):
         ret = None
         
-        log.debug(f'Request: {method}, {endpoint}')
+        log.debug(f'Request: {method}, {endpoint}, {kwargs}')
         try:
             ret = await self.request(method, endpoint + '.json', **kwargs)
         except Exception as e:

@@ -39,7 +39,7 @@ class Twitcord(discord.Client):
         if self._twitcord_ready:
             return
 
-        asyncio.ensure_future(self.refresh(), loop=self.loop)
+        asyncio.ensure_future(self.refresh_all(), loop=self.loop)
         self._twitcord_ready = True
 
     async def on_message(self, message):
@@ -75,20 +75,22 @@ class Twitcord(discord.Client):
 
         await handler(**kwargs)
 
-    async def refresh(self):
+    async def refresh_all(self):
         await asyncio.sleep(10)
-        asyncio.ensure_future(self.refresh(), loop=self.loop)
+        asyncio.ensure_future(self.refresh_all(), loop=self.loop)
 
-        for subscriber in self.subs:
-            log.debug(datetime.now())
-            log.debug(f'refreshing {subscriber.table_name}')
-            log.debug(f'latest_id: {subscriber.latest_id}')
-            tweets = await subscriber.refresh()
-            channel = self.get_channel(subscriber.channel_id)
-            if channel:
-                await self._send_tweets(channel, tweets)
-            else:
-                log.error(f'Channel not found for id {subscriber.channel_id}')
+        if self.subs:
+            log.debug(f'start refresh {len(self.subs)} subscribers')
+            await asyncio.wait([self._refresh_subscriber(sub) for sub in self.subs])
+
+    async def _refresh_subscriber(self, subscriber):
+        log.debug(f'refreshing {subscriber.table_name}: {subscriber.latest_id}')
+        tweets = await subscriber.refresh()
+        channel = self.get_channel(subscriber.channel_id)
+        if channel:
+            await self._send_tweets(channel, tweets)
+        else:
+            log.error(f'Channel not found for id {subscriber.channel_id}')
 
     async def cmd_tweet(self, text):
         content = { 'status': urllib.parse.quote(text) }
@@ -140,4 +142,5 @@ class Twitcord(discord.Client):
 
     async def _send_tweets(self, channel: discord.ChannelType, tweets: list):
         for tweet in tweets:
+            log.debug(f"dispatching: {channel}: {tweet['id']}")
             await channel.send(embed=tweet_to_embed(tweet))
