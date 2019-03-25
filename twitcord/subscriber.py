@@ -2,6 +2,7 @@ from enum import IntEnum, auto
 from logging import getLogger
 
 from .database import TableManager
+from .utils import Tweet
 
 log = getLogger(__name__)
 
@@ -54,15 +55,17 @@ class Subscriber():
         ret = []
 
         for item in content:
-            ret.append({
-                'id': item['id'],
-                'user_id': item['user']['id'],
-                'user_name': item['user']['name'],
-                'user_screen_name':item['user']['screen_name'],
-                'user_icon': item['user']['profile_image_url_https'],
-                'tweet': item['full_text'],
-                'timestamp': item['created_at']
-            })
+            ret.append(
+                Tweet(
+                    id=item['id'],
+                    user_id=item['user']['id'],
+                    user_name=item['user']['name'],
+                    user_screen_name=item['user']['screen_name'],
+                    user_icon=item['user']['profile_image_url_https'],
+                    tweet=item['full_text'],
+                    timestamp=item['created_at']
+                )
+            )
 
         return ret
 
@@ -74,14 +77,14 @@ class Subscriber():
 
         if self.latest_id:
             ret = await self.table.diffs(self.latest_id)
-            log.debug(f'{self.table_name}: diffs length {len(ret)}')
+            log.debug(f'{self.table_name}: diffs length {len(ret) if ret else 0}')
         elif to_db:
-            to_db.sort(key=lambda item: item['id'])
+            to_db.sort(key=lambda tw: tw.id)
             ret = to_db[-5:]
         
         if ret:
-            log.debug(f'{self.table_name}: latest id is set to {ret[-1]["id"]}')
-            self.latest_id = ret[-1]['id']
+            log.debug(f'{self.table_name}: latest id is set to {ret[-1].id}')
+            self.latest_id = ret[-1].id
 
         return ret or []
 

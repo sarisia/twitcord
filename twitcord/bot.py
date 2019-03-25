@@ -142,5 +142,5 @@ class Twitcord(discord.Client):
 
     async def _send_tweets(self, channel: discord.ChannelType, tweets: list):
         for tweet in tweets:
-            log.debug(f"dispatching: {channel}: {tweet['id']}")
+            log.debug(f"dispatching: {channel}: {tweet.id}")
             await channel.send(embed=tweet_to_embed(tweet))
