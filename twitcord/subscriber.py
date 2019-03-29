@@ -22,13 +22,14 @@ class Subscriber():
     table_name = ''
     params = {}
 
-    def __init__(self, twitter, channel_id, *, data=None):
+    def __init__(self, twitter, channel_id=None, *, data=None):
         self.twitter = twitter
         self.channel_id = channel_id
         self.latest_id = 0
         self.params = self.params.copy()
 
         if data:
+            self.channel_id = data['channel_id']
             self.table_name = data['table_name']
             self.latest_id = data['latest_id']
             self.params = data['params']
@@ -100,7 +101,7 @@ class UserTimelineSubscriber(Subscriber):
     subtype = SubsType.UserTimeline
     endpoint = 'statuses/user_timeline'
 
-    def __init__(self, twitter, channel_id, user_id=None, *, data=None):
+    def __init__(self, twitter, channel_id=None, user_id=None, *, data=None):
         if not data:
             self.table_name = f'user_{user_id}'
             self.params = { 'user_id': user_id }
@@ -111,7 +112,7 @@ class ListSubscriber(Subscriber):
     subtype = SubsType.List
     endpoint = 'lists/statuses'
     
-    def __init__(self, twitter, channel_id, list_id=None, *, data=None):
+    def __init__(self, twitter, channel_id=None, list_id=None, *, data=None):
         if not data:
             self.table_name = f'list_{list_id}'
             self.params = { 'list_id': list_id }
@@ -122,7 +123,7 @@ class FavoriteSubscriber(Subscriber):
     subtype = SubsType.Favorite
     endpoint = 'favorites/list'
 
-    def __init__(self, twitter, channel_id, user_id=None, *, data=None):        
+    def __init__(self, twitter, channel_id=None, user_id=None, *, data=None):        
         if not data:
             self.table_name = f'favorites_{user_id}'
             self.params = {

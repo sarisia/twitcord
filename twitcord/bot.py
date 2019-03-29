@@ -1,6 +1,8 @@
 import asyncio
 import inspect
 import urllib
+import json
+from pathlib import Path
 from datetime import datetime
 from logging import getLogger
 
@@ -8,7 +10,7 @@ import discord
 
 from .config import Config
 from .subscriber import (FavoriteSubscriber, HomeTimelineSubscriber,
-                         ListSubscriber, UserTimelineSubscriber)
+                         ListSubscriber, UserTimelineSubscriber, SubsType)
 from .twitter import TwitterWrapper
 from .utils import tweet_to_embed
 
@@ -38,6 +40,30 @@ class Twitcord(discord.Client):
     async def on_ready(self):
         if self._twitcord_ready:
             return
+
+        # deserialize
+        file = Path('config/subs.json')
+        try:
+            with file.open(encoding='utf8') as f:
+                subs = json.load(f)
+                log.info(f'Restoring {len(subs)} subscribers')
+                for sub in subs:
+                    subtype, data = sub.values()
+                    log.debug(f'{subtype}: {data}')
+                    if subtype == SubsType.HomeTimeline:
+                        self.subs.append(HomeTimelineSubscriber(self.twitter, data=data))
+                        log.info('Restored HomeTimelineSubscriber')
+                    elif subtype == SubsType.UserTimeline:
+                        self.subs.append(UserTimelineSubscriber(self.twitter, data=data))
+                        log.info('Restored UserTimelineSubscriber')
+                    elif subtype == SubsType.List:
+                        self.subs.append(ListSubscriber(self.twitter, data=data))
+                        log.info('Restored ListSubscriber')
+                    elif subtype == SubsType.Favorite:
+                        self.subs.append(FavoriteSubscriber(self.twitter, data=data))
+                        log.info('Restored FavoriteSubscriber')
+        except Exception as e:
+            log.error(f'Failed to restore subscribers: {e}')
 
         asyncio.ensure_future(self.refresh_all(), loop=self.loop)
         self._twitcord_ready = True
@@ -91,6 +117,12 @@ class Twitcord(discord.Client):
             await self._send_tweets(channel, tweets)
         else:
             log.error(f'Channel not found for id {subscriber.channel_id}')
+
+    async def cmd_debug(self):
+        file = Path('config/subs.json')
+        towrite = [t.serialize() for t in self.subs]
+        with file.open(mode='w') as f:
+            json.dump(towrite, f)
 
     async def cmd_tweet(self, text):
         content = { 'status': urllib.parse.quote(text) }
