@@ -118,9 +118,10 @@ class Twitcord(discord.Client):
         else:
             log.error(f'Channel not found for id {subscriber.channel_id}')
 
-    async def cmd_debug(self):
+    async def cmd_save(self):
         file = Path('config/subs.json')
         towrite = [t.serialize() for t in self.subs]
+
         with file.open(mode='w') as f:
             json.dump(towrite, f)
 
